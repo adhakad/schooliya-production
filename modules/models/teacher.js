@@ -27,7 +27,7 @@ const TeacherModel = mongoose.model('teacher', {
         required: true,
         trim: true,
     },
-    resultPermission: {
+    marksheetPermission: {
         status: {
             type: Boolean,
             required: true,
@@ -76,6 +76,30 @@ const TeacherModel = mongoose.model('teacher', {
         }
     },
     feeCollectionPermission: {
+        status: {
+            type: Boolean,
+            required: true,
+            default: false
+        },
+        classes: {
+            type: [Number],
+            required: true,
+            default: [0]
+        }
+    },
+    promoteFailPermission: {
+        status: {
+            type: Boolean,
+            required: true,
+            default: false
+        },
+        classes: {
+            type: [Number],
+            required: true,
+            default: [0]
+        }
+    },
+    transferCertificatePermission: {
         status: {
             type: Boolean,
             required: true,

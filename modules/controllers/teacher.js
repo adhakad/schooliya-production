@@ -7,6 +7,20 @@ let countTeacher = async (req, res, next) => {
     let countTeacher = await TeacherModel.count();
     return res.status(200).json({ countTeacher });
 }
+let GetTeacherById = async (req, res, next) => {
+    let adminId = req.params.adminId;
+    let teacherUserId = req.params.teacherUserId;
+    const checkTeacher = await TeacherUserModel.findOne({ _id: teacherUserId, adminId: adminId, });
+    if (!checkTeacher) {
+        return res.status(400).json("Invailid access !")
+    }
+    let teacherId = checkTeacher.teacherId;
+    const teacher = await TeacherModel.findOne({ _id: teacherId, adminId: adminId, });
+    if (!teacher) {
+        return res.status(400).json("Invailid access !")
+    }
+    return res.status(200).json(teacher);
+}
 let GetTeacherPagination = async (req, res, next) => {
     let searchText = req.body.filters.searchText;
     let adminId = req.body.adminId;
@@ -40,7 +54,6 @@ let GetTeacherPagination = async (req, res, next) => {
 let CreateTeacher = async (req, res, next) => {
     let otp = Math.floor(Math.random() * 899999 + 100000);
     const { adminId, name, teacherUserId, education } = req.body;
-    console.log(req.body)
     try {
         const checkTeacher = await TeacherModel.findOne({ adminId: adminId, teacherUserId: teacherUserId });
         if (checkTeacher) {
@@ -63,20 +76,22 @@ let TeacherPermission = async (req, res, next) => {
     try {
         const adminId = req.params.id;
         const teacherId = req.params.teacherId;
-        let { resultPermission, admitCardPermission, studentPermission, admissionPermission, feeCollectionPermission } = req.body.type;
+        let { marksheetPermission, admitCardPermission, studentPermission, admissionPermission, feeCollectionPermission,promoteFailPermission,transferCertificatePermission } = req.body.type;
         const checkTeacher = await TeacherModel.findOne({ _id: teacherId, adminId: adminId });
         if (!checkTeacher) {
             return res.status(400).json("Invalid Request !")
         }
-        let resultClass = [];
+        let marksheetClass = [];
         let studentClass = [];
         let admissionClass = [];
         let admitCardClass = [];
         let feeCollectionClass = [];
-        if (resultPermission.length > 0) {
-            for (let i = 0; i < resultPermission.length; i++) {
-                let className = parseInt(Object.keys(resultPermission[i])[0]);
-                resultClass.push(className);
+        let promoteFailClass = [];
+        let transferCertificateClass = [];
+        if (marksheetPermission.length > 0) {
+            for (let i = 0; i < marksheetPermission.length; i++) {
+                let className = parseInt(Object.keys(marksheetPermission[i])[0]);
+                marksheetClass.push(className);
             }
         }
         if (admissionPermission.length > 0) {
@@ -105,11 +120,23 @@ let TeacherPermission = async (req, res, next) => {
                 feeCollectionClass.push(className);
             }
         }
+        if (promoteFailPermission) {
+            for (let i = 0; i < promoteFailPermission.length; i++) {
+                let className = parseInt(Object.keys(promoteFailPermission[i])[0]);
+                promoteFailClass.push(className);
+            }
+        }
+        if (transferCertificatePermission) {
+            for (let i = 0; i < transferCertificatePermission.length; i++) {
+                let className = parseInt(Object.keys(transferCertificatePermission[i])[0]);
+                transferCertificateClass.push(className);
+            }
+        }
 
         const teacherData = {
-            resultPermission: {
-                status: resultClass.length > 0 ? true : false,
-                classes: resultClass.length > 0 ? resultClass : [0],
+            marksheetPermission: {
+                status: marksheetClass.length > 0 ? true : false,
+                classes: marksheetClass.length > 0 ? marksheetClass : [0],
             },
             admitCardPermission: {
                 status: admitCardClass.length > 0 ? true : false,
@@ -126,6 +153,14 @@ let TeacherPermission = async (req, res, next) => {
             feeCollectionPermission: {
                 status: feeCollectionClass.length > 0 ? true : false,
                 classes: feeCollectionClass.length > 0 ? feeCollectionClass : [0],
+            },
+            promoteFailPermission: {
+                status: promoteFailClass.length > 0 ? true : false,
+                classes: promoteFailClass.length > 0 ? promoteFailClass : [0],
+            },
+            transferCertificatePermission: {
+                status: transferCertificateClass.length > 0 ? true : false,
+                classes: transferCertificateClass.length > 0 ? transferCertificateClass : [0],
             },
         };
 
@@ -176,6 +211,7 @@ let DeleteTeacher = async (req, res, next) => {
 }
 
 module.exports = {
+    GetTeacherById,
     countTeacher,
     GetTeacherPagination,
     CreateTeacher,
