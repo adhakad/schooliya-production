@@ -11,7 +11,7 @@ const { DateTime } = require('luxon');
 
 let countStudent = async (req, res, next) => {
     let adminId = req.params.adminId;
-    let countStudent = await StudentModel.count({adminId: adminId});
+    let countStudent = await StudentModel.count({ adminId: adminId });
     return res.status(200).json({ countStudent });
 }
 
@@ -231,7 +231,7 @@ let CreateStudent = async (req, res, next) => {
     let receiptNo = Math.floor(Math.random() * 899999 + 100000);
     const currentDateIst = DateTime.now().setZone('Asia/Kolkata');
     const istDateTimeString = currentDateIst.toFormat('dd-MM-yyyy hh:mm:ss a');
-    let { session, medium, adminId, name, rollNumber, admissionClass, aadharNumber, udiseNumber, samagraId, admissionFees, admissionType, stream, admissionNo, dob, doa, gender, category, religion, nationality, bankAccountNo, bankIfscCode, address, lastSchool, fatherName, fatherQualification, fatherOccupation, motherOccupation, parentsContact, parentsAnnualIncome, motherName, motherQualification, discountAmountInFees, createdBy } = req.body;
+    let { session, medium, adminId, name, rollNumber, admissionClass, aadharNumber, udiseNumber, samagraId, admissionFees, admissionType, stream, admissionNo, dob, doa, gender, category, religion, nationality, bankAccountNo, bankIfscCode, address, lastSchool, fatherName, fatherQualification, fatherOccupation, motherOccupation, parentsContact, familyAnnualIncome, motherName, motherQualification, feesConcession, createdBy } = req.body;
     let className = req.body.class;
     if (stream === "stream") {
         stream = "N/A";
@@ -250,16 +250,16 @@ let CreateStudent = async (req, res, next) => {
         dob = DateTime.fromISO(dob).toFormat("dd-MM-yyyy");
     }
     let studentData = {
-        session, medium, adminId, name, rollNumber, admissionType, stream, admissionNo, class: className, admissionClass, dob: dob, doa: doa, gender, category, religion, nationality, bankAccountNo, bankIfscCode, address, lastSchool, fatherName, fatherQualification, fatherOccupation, motherOccupation, parentsContact, parentsAnnualIncome, motherName, motherQualification, discountAmountInFees, createdBy
+        session, medium, adminId, name, rollNumber, admissionType, stream, admissionNo, class: className, admissionClass, dob: dob, doa: doa, gender, category, religion, nationality, bankAccountNo, bankIfscCode, address, lastSchool, fatherName, fatherQualification, fatherOccupation, motherOccupation, parentsContact, familyAnnualIncome, motherName, motherQualification, feesConcession, createdBy
     }
     try {
-        const checkAdminPlan = await AdminPlan.findOne({ adminId: adminId});
+        const checkAdminPlan = await AdminPlan.findOne({ adminId: adminId });
         if (!checkAdminPlan) {
             return res.status(404).json(`Invalid Entry`);
         }
         let studentLimit = checkAdminPlan.studentLimit;
-        let countStudent = await StudentModel.count({adminId: adminId});
-        if (countStudent==studentLimit || countStudent>studentLimit) {
+        let countStudent = await StudentModel.count({ adminId: adminId });
+        if (countStudent == studentLimit || countStudent > studentLimit) {
             return res.status(400).json(`You have exceeded the ${countStudent} student limit for your current plan. Please increase the limit or upgrade to a higher plan to continue.`);
         }
         const checkFeesStr = await FeesStructureModel.findOne({ adminId: adminId, session: session, class: className, stream: stream });
@@ -301,7 +301,10 @@ let CreateStudent = async (req, res, next) => {
         if (checkRollNumber) {
             return res.status(400).json(`Roll number already exist for this class !`);
         }
-        let totalFees = checkFeesStr.totalFees - discountAmountInFees;
+        if (feesConcession > checkFeesStr.totalFees) {
+            return res.status(400).json(`Concession cannot be greater than the total academic session fee. !`);
+        }
+        let totalFees = checkFeesStr.totalFees - feesConcession;
         const admissionFee = checkFeesStr.admissionFees;
         let admissionFeesPayable = false;
         let paidFees = 0;
@@ -323,8 +326,8 @@ let CreateStudent = async (req, res, next) => {
             stream: stream,
             admissionFees: admissionFees ? admissionFees : 0,
             admissionFeesPayable: admissionFeesPayable,
-            discountAmountInFees: discountAmountInFees,
-            allDiscountAmountInFees:discountAmountInFees,
+            feesConcession: feesConcession,
+            allFeesConcession: feesConcession,
             totalFees: totalFees,
             paidFees: paidFees,
             dueFees: dueFees,
@@ -436,7 +439,7 @@ let CreateBulkStudentRecord = async (req, res, next) => {
             adminId: adminId,
             name: student.name,
             rollNumber: student.rollNumber,
-            discountAmountInFees: student.discountAmountInFees,
+            feesConcession: student.feesConcession,
             udiseNumber: student.udiseNumber,
             aadharNumber: student.aadharNumber,
             samagraId: student.samagraId,
@@ -461,25 +464,29 @@ let CreateBulkStudentRecord = async (req, res, next) => {
             fatherOccupation: student.fatherOccupation,
             motherOccupation: student.motherOccupation,
             parentsContact: student.parentsContact,
-            parentsAnnualIncome: student.parentsAnnualIncome,
+            familyAnnualIncome: student.familyAnnualIncome,
             createdBy: createdBy,
         });
     }
     const session = await StudentModel.startSession();
     session.startTransaction();
     try {
-        const checkAdminPlan = await AdminPlan.findOne({ adminId: adminId});
+        const checkAdminPlan = await AdminPlan.findOne({ adminId: adminId });
         if (!checkAdminPlan) {
             return res.status(404).json(`Invalid Entry`);
         }
         let studentLimit = checkAdminPlan.studentLimit;
-        let countStudent = await StudentModel.count({adminId: adminId});
+        let countStudent = await StudentModel.count({ adminId: adminId });
         let allStudentCount = studentData.length + countStudent;
-        if (countStudent==studentLimit || countStudent>studentLimit || allStudentCount>studentLimit) {
+        if (countStudent == studentLimit || countStudent > studentLimit || allStudentCount > studentLimit) {
             return res.status(400).json(`You have exceeded the ${countStudent} student limit for your current plan. Please increase the limit or upgrade to a higher plan to continue.`);
         }
         if (studentData.length > 100) {
             return res.status(400).json('File too large, Please make sure that file records to less then or equals to 100 !');
+        }
+        const checkFeesStr = await FeesStructureModel.findOne({ adminId: adminId, session: studentData[0].session, class: className, stream: stream });
+        if (!checkFeesStr) {
+            return res.status(404).json(`Please create fees structure !`);
         }
         const otherClassAdmissionNo = [];
         // for (const student of studentData) {
@@ -537,8 +544,6 @@ let CreateBulkStudentRecord = async (req, res, next) => {
             return res.status(400).json(`Admission number(s) ${spreadAdmissionNo} already exist !`);
         }
 
-
-
         // Helper function to convert string to Title Case
         function toTitleCase(str) {
             return str.replace(/\w\S*/g, (txt) => {
@@ -559,10 +564,10 @@ let CreateBulkStudentRecord = async (req, res, next) => {
                 motherQualification,
                 fatherOccupation,
                 motherOccupation,
-                parentsAnnualIncome,
+                familyAnnualIncome,
                 rollNumber,
                 admissionNo,
-                discountAmountInFees,
+                feesConcession,
                 admissionType,
                 admissionClass,
                 dob,
@@ -585,10 +590,10 @@ let CreateBulkStudentRecord = async (req, res, next) => {
             if (motherQualification === null || motherQualification === undefined) missingFields.push('motherQualification');
             if (fatherOccupation === null || fatherOccupation === undefined) missingFields.push('fatherOccupation');
             if (motherOccupation === null || motherOccupation === undefined) missingFields.push('motherOccupation');
-            if (parentsAnnualIncome === null || parentsAnnualIncome === undefined) missingFields.push('parentsAnnualIncome');
+            if (familyAnnualIncome === null || familyAnnualIncome === undefined) missingFields.push('familyAnnualIncome');
             if (rollNumber === null || rollNumber === undefined) missingFields.push('rollNumber');
             if (admissionNo === null || admissionNo === undefined) missingFields.push('admissionNo');
-            if (discountAmountInFees === null || discountAmountInFees === undefined) missingFields.push('discountAmountInFees');
+            if (feesConcession === null || feesConcession === undefined) missingFields.push('feesConcession');
             if (admissionType === null || admissionType === undefined) missingFields.push('admissionType');
             if (admissionClass === null || admissionClass === undefined || isNaN(admissionClass)) missingFields.push('admissionClass');
             if (dob === null || dob === undefined) missingFields.push('dob');
@@ -604,6 +609,9 @@ let CreateBulkStudentRecord = async (req, res, next) => {
                 const formattedMissingFields = missingFields.map(toTitleCase); // Convert to Title Case
                 return res.status(400).json(`Row ${index} is missing required fields: ( ${formattedMissingFields.join(', ')} ). Please fill in all mandatory fields before continuing!`);
             }
+            if (feesConcession > checkFeesStr.totalFees) {
+                return res.status(400).json(`Row ${index} shows a fee concession amount greater than the total academic fee.`);
+            }
 
             const rollNumberExists = existingRecords.some(record => record.rollNumber == rollNumber);
             if (rollNumberExists) {
@@ -613,10 +621,7 @@ let CreateBulkStudentRecord = async (req, res, next) => {
             index++;
         }
 
-        const checkFeesStr = await FeesStructureModel.findOne({ adminId: adminId, session: studentData[0].session, class: className, stream: stream });
-        if (!checkFeesStr) {
-            return res.status(404).json(`Please create fees structure !`);
-        }
+
         const createStudent = await StudentModel.create(studentData, { session });
         let admissionFees = checkFeesStr.admissionFees;
         let studentFeesData = [];
@@ -624,7 +629,7 @@ let CreateBulkStudentRecord = async (req, res, next) => {
         for (let i = 0; i < createStudent.length; i++) {
             let totalFees = 0;
             let student = createStudent[i];
-            totalFees = totalFeesInStr - student.discountAmountInFees;
+            totalFees = totalFeesInStr - student.feesConcession;
             let feesObject = {
                 adminId: adminId,
                 studentId: student._id,
@@ -637,8 +642,8 @@ let CreateBulkStudentRecord = async (req, res, next) => {
                 admissionFeesPayable: false,
                 admissionFees: 0,
                 totalFees: totalFees,
-                discountAmountInFees: student.discountAmountInFees,
-                allDiscountAmountInFees: student.discountAmountInFees,
+                feesConcession: student.feesConcession,
+                allFeesConcession: student.feesConcession,
                 paidFees: 0,
                 dueFees: totalFees,
                 AllTotalFees: totalFees,
@@ -681,9 +686,9 @@ let CreateBulkStudentRecord = async (req, res, next) => {
 let UpdateStudent = async (req, res, next) => {
     try {
         const id = req.params.id;
-        let { session, medium, adminId, name, rollNumber, admissionClass, aadharNumber, udiseNumber, samagraId, admissionFees, admissionType, stream, admissionNo, dob, doa, gender, category, religion, nationality, bankAccountNo, bankIfscCode, address, lastSchool, fatherName, fatherQualification, fatherOccupation, motherOccupation, parentsContact, parentsAnnualIncome, motherName, motherQualification, discountAmountInFees } = req.body;
+        let { session, medium, adminId, name, rollNumber, admissionClass, aadharNumber, udiseNumber, samagraId, admissionFees, admissionType, stream, admissionNo, dob, doa, gender, category, religion, nationality, bankAccountNo, bankIfscCode, address, lastSchool, fatherName, fatherQualification, fatherOccupation, motherOccupation, parentsContact, familyAnnualIncome, motherName, motherQualification, feesConcession } = req.body;
         const studentData = {
-            session, medium, adminId, name, rollNumber, admissionClass, aadharNumber, udiseNumber, samagraId, admissionFees, admissionType, stream, admissionNo, dob, doa, gender, category, religion, nationality, bankAccountNo, bankIfscCode, address, lastSchool, fatherName, fatherQualification, fatherOccupation, motherOccupation, parentsContact, parentsAnnualIncome, motherName, motherQualification, discountAmountInFees
+            session, medium, adminId, name, rollNumber, admissionClass, aadharNumber, udiseNumber, samagraId, admissionFees, admissionType, stream, admissionNo, dob, doa, gender, category, religion, nationality, bankAccountNo, bankIfscCode, address, lastSchool, fatherName, fatherQualification, fatherOccupation, motherOccupation, parentsContact, familyAnnualIncome, motherName, motherQualification, feesConcession
         }
         const updateStudent = await StudentModel.findByIdAndUpdate(id, { $set: studentData }, { new: true });
         return res.status(200).json('Student update successfully.');
@@ -695,7 +700,7 @@ let UpdateStudent = async (req, res, next) => {
 let StudentClassPromote = async (req, res, next) => {
     try {
         const studentId = req.params.id;
-        let { adminId, session, rollNumber, stream, discountAmountInFees } = req.body;
+        let { adminId, session, rollNumber, stream, feesConcession } = req.body;
         if (stream == "stream") {
             stream = "N/A";
         }
@@ -725,7 +730,10 @@ let StudentClassPromote = async (req, res, next) => {
         if (!checkFeesStr) {
             return res.status(404).json({ errorMsg: `Please create the fee structure for next class for session ${session}.` });
         }
-        const studentData = { session: session, rollNumber, class: className, stream, admissionType: 'Old', discountAmountInFees: discountAmountInFees };
+        if (feesConcession > checkFeesStr.totalFees) {
+            return res.status(400).json({ errorMsg: `Concession cannot be greater than the total academic session fee. !` });
+        }
+        const studentData = { session: session, rollNumber, class: className, stream, admissionType: 'Old', feesConcession: feesConcession };
         const updateStudent = await StudentModel.findByIdAndUpdate(studentId, { $set: studentData }, { new: true });
 
         if (updateStudent) {
@@ -735,7 +743,7 @@ let StudentClassPromote = async (req, res, next) => {
                 // FeesCollectionModel.findOneAndDelete({ studentId: studentId }),
             ]);
             let checkFeesStrTotalFees = checkFeesStr.totalFees
-            const totalFees = checkFeesStrTotalFees - discountAmountInFees;
+            const totalFees = checkFeesStrTotalFees - feesConcession;
             const checkFeesCollection = await FeesCollectionModel.findOne({ adminId: adminId, studentId: studentId });
             if (!checkFeesCollection) {
                 return res.status(404).json({ errorMsg: `This student previous session fees record not found.` });
@@ -763,8 +771,8 @@ let StudentClassPromote = async (req, res, next) => {
                         AllTotalFees: totalFees,
                         AllPaidFees: 0,
                         AllDueFees: totalFees,
-                        discountAmountInFees: discountAmountInFees,
-                        allDiscountAmountInFees:discountAmountInFees,
+                        feesConcession: feesConcession,
+                        allFeesConcession: feesConcession,
                     };
                     let deleteFeesCollection = await FeesCollectionModel.findOneAndDelete({ studentId: studentId });
                     let createStudentFeesData = await FeesCollectionModel.create(studentFeesData);
@@ -777,7 +785,7 @@ let StudentClassPromote = async (req, res, next) => {
                 const previousSessionStream = checkFeesCollection.stream;
                 const id = checkFeesCollection._id;
                 const previousSession = checkFeesCollection.session;
-                const previousDiscountAmountInFees = checkFeesCollection.discountAmountInFees;
+                const previousFeesConcession = checkFeesCollection.feesConcession;
                 const studentFeesData = {
                     adminId: adminId,
                     studentId,
@@ -795,8 +803,8 @@ let StudentClassPromote = async (req, res, next) => {
                     AllTotalFees: totalFees + previousSessionTotalFees,
                     AllPaidFees: previousSessionPaidFees,
                     AllDueFees: totalFees + previousSessionDueFees,
-                    discountAmountInFees: discountAmountInFees,
-                    allDiscountAmountInFees : discountAmountInFees + previousDiscountAmountInFees,
+                    feesConcession: feesConcession,
+                    allFeesConcession: feesConcession + previousFeesConcession,
                 };
                 const updatedDocument = await FeesCollectionModel.findOneAndUpdate(
                     {
@@ -812,7 +820,7 @@ let StudentClassPromote = async (req, res, next) => {
                             AllTotalFees: totalFees + previousSessionTotalFees,
                             AllPaidFees: previousSessionPaidFees,
                             AllDueFees: totalFees + previousSessionDueFees,
-                            allDiscountAmountInFees : discountAmountInFees + previousDiscountAmountInFees,
+                            allFeesConcession: feesConcession + previousFeesConcession,
 
                         }
                     },
@@ -842,7 +850,7 @@ let StudentClassPromote = async (req, res, next) => {
 let StudentClassFail = async (req, res, next) => {
     try {
         const studentId = req.params.id;
-        let { adminId, session, rollNumber, stream, discountAmountInFees } = req.body;
+        let { adminId, session, rollNumber, stream, feesConcession } = req.body;
         if (stream == "stream") {
             stream = "N/A";
         }
@@ -872,7 +880,10 @@ let StudentClassFail = async (req, res, next) => {
         if (!checkFeesStr) {
             return res.status(404).json({ errorMsg: `Please create the fee structure for next class for session ${session}.` });
         }
-        const studentData = { session: session, rollNumber, class: className, stream, admissionType: 'Old', discountAmountInFees: discountAmountInFees };
+        if (feesConcession > checkFeesStr.totalFees) {
+            return res.status(400).json({ errorMsg: `Concession cannot be greater than the total academic session fee. !` });
+        }
+        const studentData = { session: session, rollNumber, class: className, stream, admissionType: 'Old', feesConcession: feesConcession };
         const updateStudent = await StudentModel.findByIdAndUpdate(studentId, { $set: studentData }, { new: true });
 
         if (updateStudent) {
@@ -882,7 +893,7 @@ let StudentClassFail = async (req, res, next) => {
                 // FeesCollectionModel.findOneAndDelete({ studentId: studentId }),
             ]);
             let checkFeesStrTotalFees = checkFeesStr.totalFees
-            const totalFees = checkFeesStrTotalFees - discountAmountInFees;
+            const totalFees = checkFeesStrTotalFees - feesConcession;
             const checkFeesCollection = await FeesCollectionModel.findOne({ adminId: adminId, studentId: studentId });
             if (!checkFeesCollection) {
                 return res.status(404).json({ errorMsg: `This student previous session fees record not found.` });
@@ -910,8 +921,8 @@ let StudentClassFail = async (req, res, next) => {
                         AllTotalFees: totalFees,
                         AllPaidFees: 0,
                         AllDueFees: totalFees,
-                        discountAmountInFees: discountAmountInFees,
-                        allDiscountAmountInFees:discountAmountInFees,
+                        feesConcession: feesConcession,
+                        allFeesConcession: feesConcession,
                     };
                     let deleteFeesCollection = await FeesCollectionModel.findOneAndDelete({ studentId: studentId });
                     let createStudentFeesData = await FeesCollectionModel.create(studentFeesData);
@@ -924,7 +935,7 @@ let StudentClassFail = async (req, res, next) => {
                 const previousSessionStream = checkFeesCollection.stream;
                 const id = checkFeesCollection._id;
                 const previousSession = checkFeesCollection.session;
-                const previousDiscountAmountInFees = checkFeesCollection.discountAmountInFees;
+                const previousFeesConcession = checkFeesCollection.feesConcession;
                 const studentFeesData = {
                     adminId: adminId,
                     studentId,
@@ -942,8 +953,8 @@ let StudentClassFail = async (req, res, next) => {
                     AllTotalFees: totalFees + previousSessionTotalFees,
                     AllPaidFees: previousSessionPaidFees,
                     AllDueFees: totalFees + previousSessionDueFees,
-                    discountAmountInFees: discountAmountInFees,
-                    allDiscountAmountInFees : discountAmountInFees + previousDiscountAmountInFees,
+                    feesConcession: feesConcession,
+                    allFeesConcession: feesConcession + previousFeesConcession,
                 };
                 const updatedDocument = await FeesCollectionModel.findOneAndUpdate(
                     {
@@ -959,7 +970,7 @@ let StudentClassFail = async (req, res, next) => {
                             AllTotalFees: totalFees + previousSessionTotalFees,
                             AllPaidFees: previousSessionPaidFees,
                             AllDueFees: totalFees + previousSessionDueFees,
-                            allDiscountAmountInFees : discountAmountInFees + previousDiscountAmountInFees,
+                            allFeesConcession: feesConcession + previousFeesConcession,
 
                         }
                     },
@@ -1007,7 +1018,7 @@ let DeleteStudent = async (req, res, next) => {
             const [deleteAdmitCard, deleteExamResult, deleteFeesCollection] = await Promise.all([
                 AdmitCardModel.deleteOne({ studentId: id }),
                 ExamResultModel.deleteOne({ studentId: id }),
-                FeesCollectionModel.deleteOne({ studentId: id }),
+                FeesCollectionModel.deleteMany({ studentId: id }),
             ]);
 
             if (deleteAdmitCard || deleteExamResult || deleteFeesCollection) {
