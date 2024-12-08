@@ -10,7 +10,7 @@ const AdminPlan = require('../models/users/admin-plan');
 const Invoice = require('../models/invoice');
 const Counter = require('../models/counter');
 const tokenService = require('../services/admin-token');
-const { SMTP_API_KEY, SMTP_HOST, SENDER_EMAIL_ADDRESS, KEY_ID, KEY_SECRET } = process.env;
+const { SMTP_API_KEY, SMTP_HOST, SENDER_EMAIL_ADDRESS, KEY_ID, KEY_SECRET,CLOUDINARY_CLOUD_NAMAE } = process.env;
 const smtp_host = SMTP_HOST;
 const smtp_api_key = SMTP_API_KEY;
 const sender_email_address = SENDER_EMAIL_ADDRESS;
@@ -56,7 +56,7 @@ let CreatePayment = async (req, res) => {
 };
 
 let ValidatePayment = async (req, res) => {
-  const { payment_id: paymentId, order_id: orderId, signature, email, id, activePlan, amount, currency, studentLimit } = req.body;
+  const { payment_id: paymentId, order_id: orderId, signature, email, id, activePlan, amount, currency, studentLimit,teacherLimit } = req.body;
   const adminInfo = { id, email, activePlan, amount, currency };
   let paymentInfo = { paymentId, orderId, adminId: id, activePlan, amount, currency, status: 'success' };
   const secretKey = 'l4eS2FCVYOKESgX4b1qZsDJh';
@@ -113,6 +113,7 @@ let ValidatePayment = async (req, res) => {
           amount,
           currency,
           studentLimit,
+          teacherLimit,
           paymentStatus: true,
           expirationDate,
           expiryStatus: false
@@ -146,7 +147,7 @@ async function sendEmail(email,invoiceNumber,amount,activePlan,paymentDate) {
         <div style="max-width: 600px; margin: auto; background-color: #ffffff; padding: 30px 18px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
           <div style="text-align: left; margin-bottom: 20px;">
             <img 
-              src="https://res.cloudinary.com/dzzrracge/image/upload/v1731663497/logo_muu7zu.png" 
+              src="https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAMAE}/image/upload/v1731663497/logo_muu7zu.png" 
               alt="Schooliya Logo" 
               style="height: 32px; display: inline-block;" 
             />
