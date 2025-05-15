@@ -6,6 +6,7 @@ const nodemailer = require('nodemailer');
 const tokenService = require('../../services/admin-token');
 const AdminUserModel = require('../../models/users/admin-user');
 const AdminPlanModel = require('../../models/users/admin-plan');
+const SchoolModel = require('../../models/school');
 const PaymentModel = require('../../models/payment');
 const OTPModel = require('../../models/otp');
 const smtp_host = SMTP_HOST;
@@ -14,8 +15,8 @@ const sender_email_address = SENDER_EMAIL_ADDRESS;
 
 const transporter = nodemailer.createTransport({
     host: smtp_host,
-    port: 587,
-    secure: false,
+    port: 465,
+    secure: true,
     auth: {
         user: `apikey`,
         pass: smtp_api_key
@@ -129,16 +130,25 @@ let SignupAdmin = async (req, res, next) => {
             schoolId: schoolId
         };
 
-        const [createdUser, createdOTP] = await Promise.all([
-            AdminUserModel.create(userData),
-            OTPModel.create({ email, secureOtp: secureOtp })
-        ]);
+        const createUser = await AdminUserModel.create(userData);
         sendEmail(email, secureOtp);
-        return res.status(200).json({ successMsg: 'Admin registered successfully.', email });
+        const schoolData = {
+            adminId: createUser._id,
+            schoolName: schoolName,
+            affiliationNumber: affiliationNumber
+        }
+        console.log("a")
+        const [createdOTP, createSchool] = await Promise.all([
+            OTPModel.create({ email, secureOtp: secureOtp }),
+            SchoolModel.create(schoolData)
+        ]);
+        console.log("b")
+        return res.status(200).json({ successMsg: 'Admin registered successfully', email });
     } catch (error) {
         return res.status(500).json({ errorMsg: 'Internal Server Error!' });
     }
 }
+
 
 let ForgotPassword = async (req, res, next) => {
     function generateSecureOTP() {
@@ -166,7 +176,7 @@ let ForgotPassword = async (req, res, next) => {
         await OTPModel.deleteMany({ email });
         const createdOTP = await OTPModel.create({ email, secureOtp: secureOtp });
         sendEmail(email, secureOtp);
-        return res.status(200).json({ successMsg: 'Forgot password otp send successfully.', email: email });
+        return res.status(200).json({ successMsg: 'Forgot password otp send successfully', email: email });
 
     } catch (error) {
         return res.status(500).json({ errorMsg: 'Internal Server Error!' });
@@ -222,7 +232,7 @@ let VerifyOTP = async (req, res, next) => {
             const objectId = user._id;
             let update = await AdminUserModel.findByIdAndUpdate(objectId, { $set: { verified: true } }, { new: true });
             if (update) {
-                return res.status(200).json({ successMsg: "Congratulations! Your email has been successfully verified. You can now proceed with your payment.", verified: true, adminInfo: user });
+                return res.status(200).json({ successMsg: "Congratulations! Your email has been successfully verified. You can now proceed with your payment", verified: true, adminInfo: user });
             }
         }
     } catch (err) {
@@ -244,7 +254,7 @@ let ResetPassword = async (req, res, next) => {
         const objectId = user._id;
         const updateAdminUser = await AdminUserModel.findByIdAndUpdate(objectId, { $set: resetAdminUserInfo }, { new: true });
         if (updateAdminUser) {
-            return res.status(200).json({ successMsg: 'Password reset successfully.' });
+            return res.status(200).json({ successMsg: 'Password reset successfully' });
         }
     } catch (error) {
         return res.status(500).json({ errorMsg: 'Internal Server Error!' });

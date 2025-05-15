@@ -49,10 +49,6 @@ let CreateSchool = async (req, res, next) => {
     const { adminId, schoolName, affiliationNumber, schoolCode, foundedYear, board, medium, street, city, district, state, country, pinCode, phoneOne, phoneSecond, email } = req.body;
 
     try {
-        let countSchool = await SchoolModel.count({ adminId: adminId });
-        // if (countSchool > 0) {
-        //     return res.status(400).json('School detail already exists!');
-        // }
         const result = await cloudinary.uploader.upload(req.file.path);
         fs.unlinkSync(req.file.path);
         let schoolData = {
@@ -77,7 +73,7 @@ let CreateSchool = async (req, res, next) => {
         };
         const createSchool = await SchoolModel.create(schoolData);
         if (createSchool) {
-            return res.status(200).json('School created successfully.');
+            return res.status(200).json('School created successfully');
         }
     } catch (error) {
         return res.status(500).json('Internal Server Error!');
@@ -142,7 +138,7 @@ let UpdateSchool = async (req, res, next) => {
         }
         const updateSchool = await SchoolModel.findByIdAndUpdate(id, { $set: schoolData }, { new: true });
         if (updateSchool) {
-            return res.status(200).json('School updated successfully.');
+            return res.status(200).json('School updated successfully');
         } else {
             return res.status(404).json('School not found!');
         }
@@ -157,7 +153,7 @@ let DeleteSchool = async (req, res, next) => {
         await cloudinary.uploader.destroy(singleSchool.schoolLogoPublicId);
         const deleteSchool = await SchoolModel.findByIdAndRemove(id);
         if (deleteSchool) {
-            return res.status(200).json('School deleted successfully.');
+            return res.status(200).json('School deleted successfully');
         }
     } catch (error) {
         return res.status(500).json('Internal Server Error!');

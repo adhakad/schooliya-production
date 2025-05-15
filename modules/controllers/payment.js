@@ -59,7 +59,7 @@ let ValidatePayment = async (req, res) => {
   const { payment_id: paymentId, order_id: orderId, signature, email, id, activePlan, amount, currency, studentLimit, teacherLimit } = req.body;
   const adminInfo = { id, email, activePlan, amount, currency };
   let paymentInfo = { paymentId, orderId, adminId: id, activePlan, amount, currency, status: 'success' };
-  const secretKey = 'JRHMapIAVSkH49pYgMjDiER1';
+  const secretKey = 'TD9mfh8gQjfm1syTnY0RT4E7';
   const body = `${orderId}|${paymentId}`;
 
   try {
@@ -131,7 +131,7 @@ let ValidatePayment = async (req, res) => {
     const accessToken = await tokenService.getAccessToken(payload);
     const refreshToken = await tokenService.getRefreshToken(payload);
 
-    return res.status(200).json({ success: true, accessToken, refreshToken, adminInfo, successMsg: 'Payment successfully Received.' });
+    return res.status(200).json({ success: true, accessToken, refreshToken, adminInfo, successMsg: 'Payment successfully Received' });
   } catch (error) {
     return res.status(500).json({ errorMsg: 'Error validating payment!' });
   }
@@ -142,7 +142,7 @@ let ValidateUpgradePlanPayment = async (req, res) => {
   const { payment_id: paymentId, order_id: orderId, signature, email, id, activePlan, amount, currency, studentLimit, teacherLimit } = req.body;
   const adminInfo = { id, email, activePlan, amount, currency };
   let paymentInfo = { paymentId, orderId, adminId: id, activePlan, amount, currency, status: 'success' };
-  const secretKey = 'JRHMapIAVSkH49pYgMjDiER1';
+  const secretKey = 'TD9mfh8gQjfm1syTnY0RT4E7';
   const body = `${orderId}|${paymentId}`;
 
   try {
@@ -198,7 +198,7 @@ let ValidateUpgradePlanPayment = async (req, res) => {
     const accessToken = await tokenService.getAccessToken(payload);
     const refreshToken = await tokenService.getRefreshToken(payload);
 
-    return res.status(200).json({ success: true, accessToken, refreshToken, adminInfo, successMsg: 'Payment successfully Received.' });
+    return res.status(200).json({ success: true, accessToken, refreshToken, adminInfo, successMsg: 'Payment successfully Received' });
   } catch (error) {
     return res.status(500).json({ errorMsg: 'Error validating payment!' });
   }

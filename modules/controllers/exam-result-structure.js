@@ -124,14 +124,12 @@ let CreateExamResultStructure = async (req, res, next) => {
                 for (const key in termData) {
                     const value = termData[key];
         
-                    // अगर `supplySubjectLimit` है तो सीधे termData में रखें
                     if (key === 'supplySubjectLimit') {
                         termData[key] = value;
                     } 
-                    // अगर यह object नहीं है और supplySubjectLimit भी नहीं है
                     else if (typeof value !== 'object') {
                         termData.scholasticMarks[key] = classSubjects.subject.map(sub => ({ [sub.subject]: value }));
-                        delete termData[key];  // इसे scholasticMarks में डालने के बाद हटाएं
+                        delete termData[key];
                     }
                 }
             }
@@ -150,7 +148,7 @@ let CreateExamResultStructure = async (req, res, next) => {
             createdBy:createdBy
         };
         let marksheetTemplate = await MarksheetTemplateModel.create(marksheetTemplateData);
-        return res.status(200).json('Marksheet template created successfully.');
+        return res.status(200).json('Marksheet template created successfully');
 
     } catch (error) {
         return res.status(500).json('Internal Server Error!');;
@@ -348,7 +346,7 @@ let UpdateMarksheetTemplateStructure = async (req, res, next) => {
         transformedData.createdBy = createdBy;
         let updateTemaplateStructure = await MarksheetTemplateModel.findByIdAndUpdate(id, { $set: transformedData }, { new: true });
         if (updateTemaplateStructure) {
-            return res.status(200).json("Marksheet template structure updated successfully.");
+            return res.status(200).json("Marksheet template structure updated successfully");
         }
     } catch (error) {
         return res.status(500).json('Internal Server Error!');
@@ -418,7 +416,7 @@ let DeleteResultStructure = async (req, res, next) => {
         const [deleteResultStructure, deleteResult] = deleteOps;
 
 
-        return res.status(200).json('Marksheet template deleted successfully.');
+        return res.status(200).json('Marksheet template deleted successfully');
 
     } catch (error) {
         return res.status(500).json('Internal Server Error!');
