@@ -12,8 +12,8 @@ const cookieParser = require("cookie-parser");
 const path = require('path');
 require('./cron-job');
 
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.json({ limit: '50mb' }));
+app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 app.use(cookieParser());
 app.use(cors());
 DbConnect();
@@ -31,9 +31,6 @@ require('./routes')(app);
 app.get('/*',(req,res) => {
   res.sendFile(path.join(__dirname ,'./dist/zoclass/index.html'));
 })
-
-
-
 
 let port = Number(global.global_config.server.port);
 let server = app.listen(port, function () {
