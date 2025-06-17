@@ -84,13 +84,13 @@ let SignupAdmin = async (req, res, next) => {
     try {
         const existingUser = await AdminUserModel.findOne({ email });
         if (existingUser) {
-            if (!existingUser.verified) {
-                await OTPModel.deleteMany({ email });
-                await OTPModel.create({ email, secureOtp: secureOtp });
-                sendEmail(email, secureOtp);
-                return res.status(400).json({ verified: false, paymentMode: true, email });
-            }
-            if (existingUser.verified) {
+            // if (!existingUser.verified) {
+            //     await OTPModel.deleteMany({ email });
+            //     await OTPModel.create({ email, secureOtp: secureOtp });
+            //     sendEmail(email, secureOtp);
+            //     return res.status(400).json({ verified: false, paymentMode: true, email });
+            // }
+            // if (existingUser.verified) {
                 let adminId = existingUser._id;
                 const existingUserPlan = await AdminPlanModel.findOne({ adminId: adminId });
                 if (!existingUserPlan) {
@@ -102,7 +102,7 @@ let SignupAdmin = async (req, res, next) => {
                     }
                     return res.status(400).json({ verified: true, paymentMode: false, errorMsg: `Your ${existingUserPlan.activePlan} plan is already active, enjoy your services!` });
                 }
-            }
+            // }
 
         }
         // let schoolAffiliationNumber = await SchoolModel.findOne({ affiliationNumber: affiliationNumber });
@@ -132,15 +132,15 @@ let SignupAdmin = async (req, res, next) => {
             schoolId: schoolId
         };
         const createUser = await AdminUserModel.create(userData);
-        sendEmail(email, secureOtp);
+        // sendEmail(email, secureOtp);
         // const schoolData = {
         //     adminId: createUser._id,
         //     schoolName: schoolName,
         //     affiliationNumber: affiliationNumber
         // }
-        await OTPModel.create({ email, secureOtp: secureOtp });
+        // await OTPModel.create({ email, secureOtp: secureOtp });
         // await SchoolModel.create(schoolData);
-        return res.status(200).json({ successMsg: 'Admin registered successfully', email });
+        return res.status(200).json({ successMsg: 'Admin registered successfully', email, adminInfo: createUser });
     } catch (error) {
         return res.status(500).json({ errorMsg: 'Internal Server Error!' });
     }
@@ -212,7 +212,7 @@ let sendEmail = async (email, secureOtp) => {
     try {
         const result = await transporter.sendMail(mailOptions);
     } catch (error) {
-        console.error("Failed to send email:", err.message);
+        console.error("Failed to send email:", error.message);
     }
 };
 
