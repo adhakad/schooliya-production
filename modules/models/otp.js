@@ -2,21 +2,27 @@
 const mongoose = require('mongoose');
 
 const OTPModel = mongoose.model('otp', {
-    email: {
-        type: String,
-        required: true,
-        trim: true,
-      },
-      secureOtp: {
-        type: Number,
-        required: true,
-        trim: true,
-      },
-      createdAt: {
-        type: Date,
-        default: Date.now,
-        expires: 60 * 5,
-      },
+  mobile: {
+    type: Number,
+    required: true,
+    trim: true,
+    unique: true
+  },
+  secureOtp: {
+    type: Number,
+    required: true,
+    trim: true,
+  },
+  count: { type: Number, required: true, default: 1 },
+  createdAt: {
+    type: Date,
+    default: Date.now,
+    expires: 60 * 5,
+  },
+  lastSentAt: {
+    type: Date,
+    default: Date.now,
+  },
 });
 
 module.exports = OTPModel;

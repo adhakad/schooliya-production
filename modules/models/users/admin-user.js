@@ -4,13 +4,11 @@ const mongoose = require('mongoose');
 const AdminModel = mongoose.model('admin-users', {
     email: {
         type: String,
-        required: true,
         trim: true,
         unique: true,
     },
     password: {
         type: String,
-        required: true,
         trim: true,
     },
     verified: {
@@ -19,54 +17,68 @@ const AdminModel = mongoose.model('admin-users', {
     },
     name: {
         type: String,
-        required: true,
         trim: true
     },
     mobile: {
         type: Number,
-        required: true,
-        trim: true
+        trim: true,
+        unique: true,
     },
     city: {
         type: String,
-        required: true,
         trim: true,
     },
     state: {
         type: String,
-        required: true,
         trim: true,
     },
     country: {
         type: String,
-        required: true,
         default: 'India',
     },
     address: {
         type: String,
-        required: true,
         trim: true,
     },
     pinCode: {
         type: Number,
-        required: true,
         trim: true,
     },
     schoolName: {
         type: String,
-        required: true,
         trim: true,
     },
     affiliationNumber: {
         type: String,
-        required: true,
         trim: true,
     },
     schoolId: {
         type: Number,
-        required: true,
         trim: true,
         unique: true
+    },
+    stepId: {
+        type: String,
+        trim: true,
+        unique: true
+    },
+    signupStep: {
+        type: Number,
+        enum: [0, 2],
+        default: 2,
+        trim: true
+    },
+    otpStep: {
+        type: Number,
+        enum: [0, 2, 3],
+        default: 2,
+        trim: true
+    },
+    schoolDetailStep: {
+        type: Number,
+        enum: [0, 1, 2],
+        default: 0,
+        trim: true
     },
     // status: {
     //     type: String,

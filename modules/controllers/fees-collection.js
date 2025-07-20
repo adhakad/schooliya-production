@@ -2,6 +2,7 @@
 const FeesCollectionModel = require('../models/fees-collection');
 const FeesStructureModel = require('../models/fees-structure');
 const StudentModel = require('../models/student');
+const { paymentSuccessWhatsappMessage } = require('../services/send-sms');
 const { DateTime } = require('luxon');
 
 
@@ -32,53 +33,53 @@ let GetStudentFeesCollectionBySession = async (req, res, next) => {
                 '11': 'November',
                 '12': 'December'
             };
-        
+
             const monthlyPayments = {};
-        
+
             // Initialize all 12 months with 0
             for (let monthNum in monthsMap) {
                 monthlyPayments[monthsMap[monthNum]] = 0;
             }
-        
+
             for (let i = 0; i < feesData.length; i++) {
                 let data = feesData[i];
-        
+
                 // Check and add admission fees
                 if (data.admissionFees > 0 && data.admissionFeesPaymentDate) {
                     const admissionPaymentDate = data.admissionFeesPaymentDate;
-                    const [admissionDatePart] = admissionPaymentDate.split(' '); 
+                    const [admissionDatePart] = admissionPaymentDate.split(' ');
                     const [day, month] = admissionDatePart.split('-').slice(0, 2);
                     const monthName = monthsMap[month];
-        
+
                     if (monthName) {
                         monthlyPayments[monthName] += data.admissionFees;
                     }
                 }
-        
+
                 // Loop through each installment
                 for (let j = 0; j < data.installment.length; j++) {
                     let amount = data.installment[j];
                     let paymentDate = data.paymentDate[j];
-        
+
                     if (paymentDate) {
                         const [datePart] = paymentDate.split(' ');
                         const [day, month] = datePart.split('-');
                         const monthName = monthsMap[month];
-        
+
                         if (monthName) {
                             monthlyPayments[monthName] += amount;
                         }
                     }
                 }
             }
-        
+
             return monthlyPayments;
         }
-        
+
         // Call function and log results
         const monthlyPaymentFees = findMonthlyPayments(allFees);
 
-        return res.status(200).json({monthlyPaymentFees:monthlyPaymentFees, totalFeesSum: totalFeesSum, paidFeesSum: paidFeesSum, dueFeesSum: dueFeesSum });
+        return res.status(200).json({ monthlyPaymentFees: monthlyPaymentFees, totalFeesSum: totalFeesSum, paidFeesSum: paidFeesSum, dueFeesSum: dueFeesSum });
     } catch (error) {
         return res.status(500).json('Internal Server Error!');
     }
@@ -229,7 +230,7 @@ let CreateFeesCollection = async (req, res, next) => {
             const AllPaidFees = checkFeesCollection.AllPaidFees + feesAmount;
             const AllDueFees = checkFeesCollection.AllDueFees - feesAmount;
             const feesData = {
-                session:checkFeesCollection.session,
+                session: checkFeesCollection.session,
                 receiptNo: receiptNo,
                 totalFees: totalFees,
                 feesConcession: checkFeesCollection.feesConcession,
@@ -266,6 +267,7 @@ let CreateFeesCollection = async (req, res, next) => {
                     new: true // Return the updated document
                 });
             if (updatedDocument) {
+                // await paymentSuccessWhatsappMessage("5000", "+919340700360");
                 return res.status(200).json(feesData);
             }
         }
@@ -284,7 +286,7 @@ let CreateFeesCollection = async (req, res, next) => {
             const AllPaidFees = checkPreviousFeesCollection.AllPaidFees + feesAmount;
             const AllDueFees = checkPreviousFeesCollection.AllDueFees - feesAmount;
             const feesData = {
-                session:previousSession,
+                session: previousSession,
                 receiptNo: receiptNo,
                 totalFees: totalFees,
                 feesConcession: checkPreviousFeesCollection.feesConcession,
@@ -317,7 +319,7 @@ let CreateFeesCollection = async (req, res, next) => {
                             AllTotalFees: currentSessionTotalFees,
                             AllPaidFees: 0,
                             AllDueFees: currentSessionTotalFees,
-                            allFeesConcession:checkFeesCollection.feesConcession,
+                            allFeesConcession: checkFeesCollection.feesConcession,
                         }
                     },
                     {
@@ -334,13 +336,14 @@ let CreateFeesCollection = async (req, res, next) => {
                             AllTotalFees: currentSessionTotalFees,
                             AllPaidFees: 0,
                             AllDueFees: currentSessionTotalFees,
-                            allFeesConcession:checkFeesCollection.feesConcession,
+                            allFeesConcession: checkFeesCollection.feesConcession,
                         }
                     },
                     {
                         new: true
                     });
                 if (updatedDocument && updated) {
+                    // await paymentSuccessWhatsappMessage("5000", "+919340700360");
                     return res.status(200).json(feesData);
                 }
             }
@@ -354,7 +357,7 @@ let CreateFeesCollection = async (req, res, next) => {
                 const AllPaidFees = checkFeesCollection.AllPaidFees + feesAmount;
                 const AllDueFees = checkFeesCollection.AllDueFees - feesAmount;
                 const feesData = {
-                    session:checkFeesCollection.session,
+                    session: checkFeesCollection.session,
                     receiptNo: receiptNo,
                     totalFees: totalFees,
                     feesConcession: checkFeesCollection.feesConcession,
@@ -392,6 +395,7 @@ let CreateFeesCollection = async (req, res, next) => {
                         new: true // Return the updated document
                     });
                 if (updatedDocument && deleteDocument) {
+                    // await paymentSuccessWhatsappMessage("5000", "+919340700360");
                     return res.status(200).json(feesData);
                 }
             }
@@ -438,6 +442,7 @@ let CreateFeesCollection = async (req, res, next) => {
                 }
             );
             if (updatedDocument && updated) {
+                // await paymentSuccessWhatsappMessage("5000", "+919340700360");
                 return res.status(200).json(feesData);
             }
 
