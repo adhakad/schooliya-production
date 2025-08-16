@@ -1,29 +1,3 @@
-// 'use strict';
-// const twilio = require('twilio');
-// const { TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER } = process.env;
-// const client = twilio(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
-
-// let commonWhatsappMessage = async (message, phone) => {
-//     try {
-//         return await client.messages.create({
-//             body: message,
-//             from: `whatsapp:${TWILIO_PHONE_NUMBER}`,
-//             to: `whatsapp:+91${phone}`
-//         });
-//     }
-//     catch (e) {
-//         console.log(e)
-//     }
-// }
-// let otpWhatsappMessage = async (otp, phone) => {
-//     let msgbody =
-//         `Your one time password OTP is: ${otp}`;
-//     return commonWhatsappMessage(msgbody, phone)
-// };
-
-// module.exports = {
-//     otpWhatsappMessage
-// }
 'use strict';
 const axios = require('axios').default;
 const { MSG91_AUTH_KEY } = process.env;
@@ -31,7 +5,7 @@ const MSG91_INTEGRATED_NUMBER = process.env.MSG91_INTEGRATED_NUMBER; // like "91
 const MSG91_NAMESPACE = process.env.MSG91_NAMESPACE; // from MSG91 template
 const MSG91_TEMPLATE_NAME = process.env.MSG91_TEMPLATE_NAME || "login_otp"; // approved template
 
-const commonWhatsappMessage = async (otp, phone) => {
+const sendOtpWhatsappMessage = async (otp, phone) => {
     try {
         const payload = {
             integrated_number: MSG91_INTEGRATED_NUMBER,
@@ -83,32 +57,66 @@ const commonWhatsappMessage = async (otp, phone) => {
         throw new Error('WhatsApp OTP not sent');
     }
 };
-const sendFeesConfirmationMessage = async (phone, bodyValues = []) => {
+
+const sendFeesConfirmationWithoutReceipt = async (phone, school_name, academic_year, student_name, received_amount, date, receipt_no, class_name, admission_no, father_name, mother_name) => {
     try {
         const payload = {
-            integrated_number: process.env.MSG91_INTEGRATED_NUMBER, // set in .env
+            integrated_number: process.env.MSG91_INTEGRATED_NUMBER,
             content_type: "template",
             payload: {
                 messaging_product: "whatsapp",
                 type: "template",
                 template: {
-                    name: "fees_confirmation",
+                    name: "fee_confirmation_without_reciept",
                     language: {
-                        code: "en", // or en_GB if required
+                        code: "en",
                         policy: "deterministic"
                     },
-                    // namespace: "bc6d378a_4d7e_4e78_a870_75883411b711",
+                    namespace: "bc6d378a_4d7e_4e78_a870_75883411b711",
                     to_and_components: [
                         {
-                            to: [`91${phone}`], // 10 digit number without '+'
-                            components: {
-                                ...bodyValues.reduce((acc, val, index) => {
-                                    acc[`body_${index + 1}`] = {
-                                        type: "text",
-                                        value: val
-                                    };
-                                    return acc;
-                                }, {})
+                            to: [`91${phone}`],
+                            "components": {
+                                "body_1": {
+                                    "type": "text",
+                                    "value": school_name
+                                },
+                                "body_2": {
+                                    "type": "text",
+                                    "value": academic_year
+                                },
+                                "body_3": {
+                                    "type": "text",
+                                    "value": student_name
+                                },
+                                "body_4": {
+                                    "type": "text",
+                                    "value": received_amount
+                                },
+                                "body_5": {
+                                    "type": "text",
+                                    "value": date
+                                },
+                                "body_6": {
+                                    "type": "text",
+                                    "value": receipt_no
+                                },
+                                "body_7": {
+                                    "type": "text",
+                                    "value": class_name
+                                },
+                                "body_8": {
+                                    "type": "text",
+                                    "value": admission_no
+                                },
+                                "body_9": {
+                                    "type": "text",
+                                    "value": father_name
+                                },
+                                "body_10": {
+                                    "type": "text",
+                                    "value": mother_name
+                                },
                             }
                         }
                     ]
@@ -117,18 +125,91 @@ const sendFeesConfirmationMessage = async (phone, bodyValues = []) => {
         };
 
         const headers = {
-            authkey: process.env.MSG91_AUTH_KEY, // set in .env
+            authkey: process.env.MSG91_AUTH_KEY,
             'Content-Type': 'application/json',
             Accept: 'application/json'
         };
 
         const response = await axios.post(
-            'https://control.msg91.com/api/v5/whatsapp/whatsapp-outbound-message/bulk/',
+            'https://api.msg91.com/api/v5/whatsapp/whatsapp-outbound-message/bulk/',
             payload,
             { headers }
         );
 
-        return response.data;
+        const requestId = response.data.request_id;
+        const sentDateTime = response.headers.date;
+        return { requestId, sentDateTime };
+    } catch (error) {
+        console.error('MSG91 WhatsApp Error:', error.response?.data || error.message);
+        throw new Error('WhatsApp message not sent');
+    }
+};
+
+
+const sendManualFeeReminderMessage = async (phone, school_name, father_name, pending_amount, student_name, class_name, last_date) => {
+    try {
+        const payload = {
+            integrated_number: process.env.MSG91_INTEGRATED_NUMBER,
+            content_type: "template",
+            payload: {
+                messaging_product: "whatsapp",
+                type: "template",
+                template: {
+                    name: "fee_reminder",
+                    language: {
+                        code: "en",
+                        policy: "deterministic"
+                    },
+                    namespace: "bc6d378a_4d7e_4e78_a870_75883411b711",
+                    to_and_components: [
+                        {
+                            to: [`91${phone}`],
+                            "components": {
+                                "body_1": {
+                                    "type": "text",
+                                    "value": school_name
+                                },
+                                "body_2": {
+                                    "type": "text",
+                                    "value": father_name
+                                },
+                                "body_3": {
+                                    "type": "text",
+                                    "value": pending_amount
+                                },
+                                "body_4": {
+                                    "type": "text",
+                                    "value": student_name
+                                },
+                                "body_5": {
+                                    "type": "text",
+                                    "value": class_name
+                                },
+                                "body_6": {
+                                    "type": "text",
+                                    "value": last_date
+                                },
+                            }
+                        }
+                    ]
+                }
+            }
+        };
+
+        const headers = {
+            authkey: process.env.MSG91_AUTH_KEY,
+            'Content-Type': 'application/json',
+            Accept: 'application/json'
+        };
+
+        const response = await axios.post(
+            'https://api.msg91.com/api/v5/whatsapp/whatsapp-outbound-message/bulk/',
+            payload,
+            { headers }
+        );
+        const requestId = response.data.request_id;
+        const sentDateTime = response.headers.date;
+        return { requestId, sentDateTime };
     } catch (error) {
         console.error('MSG91 WhatsApp Error:', error.response?.data || error.message);
         throw new Error('WhatsApp message not sent');
@@ -136,13 +217,17 @@ const sendFeesConfirmationMessage = async (phone, bodyValues = []) => {
 };
 
 const otpWhatsappMessage = async (otp, phone) => {
-    return await commonWhatsappMessage(otp, phone);
+    return await sendOtpWhatsappMessage(otp, phone);
 };
-const feesConfirmationWhatsappMessage = async (phone, valuesArray) => {
-    return await sendFeesConfirmationMessage(phone, valuesArray);
+const feesConfirmationMessage = async (phone, school_name, academic_year, student_name, received_amount, date, receipt_no, class_name, admission_no, father_name, mother_name) => {
+    return await sendFeesConfirmationWithoutReceipt(phone, school_name, academic_year, student_name, received_amount, date, receipt_no, class_name, admission_no, father_name, mother_name);
+};
+const sendManualFeeReminder = async (phone, school_name, father_name, pending_amount, student_name, class_name, last_date) => {
+    return await sendManualFeeReminderMessage(phone, school_name, father_name, pending_amount, student_name, class_name, last_date);
 };
 
 module.exports = {
     otpWhatsappMessage,
-    feesConfirmationWhatsappMessage
+    feesConfirmationMessage,
+    sendManualFeeReminder
 };
