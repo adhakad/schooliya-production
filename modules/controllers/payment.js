@@ -2,35 +2,19 @@
 const Razorpay = require('razorpay');
 const crypto = require('crypto');
 const { DateTime } = require('luxon');
-const fs = require('fs');
-const path = require('path');
-const nodemailer = require('nodemailer');
 const Payment = require('../models/payment');
 const AdminPlan = require('../models/users/admin-plan');
 const WhatsappMessageWallet = require('../models/whatsapp-message/message-wallet');
 const Invoice = require('../models/invoice');
 const Counter = require('../models/counter');
 const tokenService = require('../services/admin-token');
-const { SMTP_API_KEY, SMTP_HOST, SENDER_EMAIL_ADDRESS, KEY_ID, KEY_SECRET, CLOUDINARY_CLOUD_NAMAE } = process.env;
-const smtp_host = SMTP_HOST;
-const smtp_api_key = SMTP_API_KEY;
-const sender_email_address = SENDER_EMAIL_ADDRESS;
+const { KEY_ID, KEY_SECRET, CLOUDINARY_CLOUD_NAMAE } = process.env;
 const key_id = KEY_ID;
 const key_secret = KEY_SECRET;
 
 const razorpay = new Razorpay({
   key_id: key_id,
   key_secret: key_secret,
-});
-
-const transporter = nodemailer.createTransport({
-  host: smtp_host,
-  port: 587,
-  secure: false,
-  auth: {
-    user: `apikey`,
-    pass: smtp_api_key
-  },
 });
 
 
@@ -83,33 +67,32 @@ let ValidatePayment = async (req, res) => {
     const invoiceNumber = `${datePrefix}${counter.count}`;
     paymentInfo.invoiceNumber = invoiceNumber;
     const newInvoice = await Invoice.create(paymentInfo);
-    let expirationDate;
-    const currentTime = new Date();
-    const thirtyOneDaysInMillis = 31 * 24 * 60 * 60 * 1000;
+    // let expirationDate;
+    // const currentTime = new Date();
+    // const thirtyOneDaysInMillis = 31 * 24 * 60 * 60 * 1000;
 
-    const existingAdminPlan = await AdminPlan.findOne({ adminId: id });
-    if (existingAdminPlan) {
-      const currentExpirationDate = new Date(existingAdminPlan.expirationDate);
-      const oneMonthBeforeExpiration = new Date(currentExpirationDate.getTime() - thirtyOneDaysInMillis);
+    // const existingAdminPlan = await AdminPlan.findOne({ adminId: id });
+    // if (existingAdminPlan) {
+    //   const currentExpirationDate = new Date(existingAdminPlan.expirationDate);
+    //   const oneMonthBeforeExpiration = new Date(currentExpirationDate.getTime() - thirtyOneDaysInMillis);
 
-      if (currentTime >= oneMonthBeforeExpiration) {
-        expirationDate = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
-      } else {
-        const remainingTime = currentExpirationDate - currentTime;
-        expirationDate = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000 + remainingTime);
-      }
-    } else {
-      expirationDate = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
-    }
+    //   if (currentTime >= oneMonthBeforeExpiration) {
+    //     expirationDate = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
+    //   } else {
+    //     const remainingTime = currentExpirationDate - currentTime;
+    //     expirationDate = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000 + remainingTime);
+    //   }
+    // } else {
+    // expirationDate = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
+    // }
+    let expirationDate = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
 
     const updatedAdminPlan = await AdminPlan.findOneAndUpdate(
       { adminId: id },
       {
         $set: {
-          paymentId,
-          orderId,
-          email,
           activePlan,
+          subscriptionType: subscriptionType,
           amount,
           currency,
           studentLimit,
@@ -117,7 +100,6 @@ let ValidatePayment = async (req, res) => {
           paymentStatus: true,
           expirationDate,
           expiryStatus: false,
-          whatsappMessageLimit
         }
       },
       { upsert: true, new: true }
@@ -128,7 +110,7 @@ let ValidatePayment = async (req, res) => {
       return res.status(400).json({ errorMsg: 'Failed to create or update admin plan!' });
     }
     const transactionType = 'New Subscription';
-    sendEmail(email, invoiceNumber, amount, activePlan, paymentDate, transactionType);
+    // sendEmail(email, invoiceNumber, amount, activePlan, paymentDate, transactionType);
     const payload = { id, email };
     const accessToken = await tokenService.getAccessToken(payload);
     const refreshToken = await tokenService.getRefreshToken(payload);
@@ -167,17 +149,10 @@ let ValidateUpgradePlanPayment = async (req, res) => {
     const invoiceNumber = `${datePrefix}${counter.count}`;
     paymentInfo.invoiceNumber = invoiceNumber;
     const newInvoice = await Invoice.create(paymentInfo);
-
-    // const existingAdminPlan = await AdminPlan.findOne({ adminId: id });
-    // const existingAmount = existingAdminPlan.amount;
-    // const newAmount = existingAmount + amount;
     const updatedAdminPlan = await AdminPlan.findOneAndUpdate(
       { adminId: id },
       {
         $set: {
-          paymentId,
-          orderId,
-          email,
           activePlan,
           amount,
           currency,
@@ -194,7 +169,7 @@ let ValidateUpgradePlanPayment = async (req, res) => {
       return res.status(400).json({ errorMsg: 'Failed to create or update admin plan!' });
     }
     const transactionType = 'Upgrade';
-    sendEmail(email, invoiceNumber, amount, activePlan, paymentDate, transactionType);
+    // sendEmail(email, invoiceNumber, amount, activePlan, paymentDate, transactionType);
     const payload = { id, email };
     const accessToken = await tokenService.getAccessToken(payload);
     const refreshToken = await tokenService.getRefreshToken(payload);
