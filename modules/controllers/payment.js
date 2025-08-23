@@ -41,8 +41,8 @@ let CreatePayment = async (req, res) => {
 };
 
 let ValidatePayment = async (req, res) => {
-  const { payment_id: paymentId, order_id: orderId, signature, email, id, activePlan, subscriptionType, amount, currency, studentLimit, teacherLimit, whatsappMessageLimit } = req.body;
-  const adminInfo = { id, email, activePlan, amount, currency };
+  const { payment_id: paymentId, order_id: orderId, signature, mobile, id, activePlan, subscriptionType, amount, currency, studentLimit, teacherLimit, whatsappMessageLimit } = req.body;
+  const adminInfo = { id, mobile, activePlan, amount, currency };
   let paymentInfo = { paymentId, orderId, adminId: id, activePlan, amount, currency, status: 'success' };
   const body = `${orderId}|${paymentId}`;
 
@@ -87,6 +87,7 @@ let ValidatePayment = async (req, res) => {
     // }
     let expirationDate = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
 
+    let whatsappMessageData = { adminId: id, totalWhatsappMessage: whatsappMessageLimit, remainingWhatsappMessage: whatsappMessageLimit };
     const updatedAdminPlan = await AdminPlan.findOneAndUpdate(
       { adminId: id },
       {
@@ -104,14 +105,14 @@ let ValidatePayment = async (req, res) => {
       },
       { upsert: true, new: true }
     );
-    const createWhatsappMessage = await WhatsappMessageWallet.create({ adminId: adminInfo.id, totalWhatsappMessage: whatsappMessageLimit, remainingWhatsappMessage: whatsappMessageLimit });
+    const createWhatsappMessage = await WhatsappMessageWallet.create(whatsappMessageData);
 
     if (!updatedAdminPlan) {
       return res.status(400).json({ errorMsg: 'Failed to create or update admin plan!' });
     }
     const transactionType = 'New Subscription';
     // sendEmail(email, invoiceNumber, amount, activePlan, paymentDate, transactionType);
-    const payload = { id, email };
+    const payload = { id, mobile };
     const accessToken = await tokenService.getAccessToken(payload);
     const refreshToken = await tokenService.getRefreshToken(payload);
 
